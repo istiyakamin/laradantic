@@ -8,6 +8,8 @@ use LaraDantic\Exceptions\UnsupportedFeatureException;
 use LaraDantic\Providers\AIProvider;
 use LaraDantic\Providers\ProviderManager;
 use LaraDantic\Schema\Schema;
+use LaraDantic\Tools\Tool;
+use LaraDantic\Tools\ToolRegistry;
 
 /**
  * Entry point for the `AI` facade: picks a provider/model, then dispatches to
@@ -46,6 +48,20 @@ final class AIManager
         }
 
         return new StructuredOutputRequest($this->providers->driver($this->providerName), $this->model, $schemaClass);
+    }
+
+    /**
+     * @param  array<int, class-string<Tool>|Tool>  $tools
+     */
+    public function tools(array $tools): ToolCallRequest
+    {
+        $registry = new ToolRegistry;
+
+        foreach ($tools as $tool) {
+            $registry->register($tool);
+        }
+
+        return new ToolCallRequest($this->providers->driver($this->providerName), $this->model, $registry);
     }
 
     /**

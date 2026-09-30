@@ -2,7 +2,7 @@
 
 Pydantic-inspired typed schemas for Laravel — define a data structure once in PHP and reuse it for validation, JSON Schema, structured AI output, and tool calling.
 
-> **Status:** v0.1 in active development. This release implements the core schema engine, JSON Schema generation, Laravel validation, and structured AI output via OpenRouter (Milestones 1-5). Tool calling and agents are not implemented yet — see the roadmap below.
+> **Status:** v0.1 in active development. This release implements the core schema engine, JSON Schema generation, Laravel validation, structured AI output, and tool calling (Milestones 1-6). Agents are not implemented yet — see the roadmap below.
 
 ## Installation
 
@@ -133,6 +133,57 @@ The pipeline is exactly: schema -> JSON Schema -> provider request -> LLM -> JSO
 
 Transient failures (429/500/502/503/504, connection errors) are retried automatically up to `config('laradantic.retries')` times; everything else fails fast as `ProviderAuthenticationException` (401/403 or a missing API key), `ProviderRateLimitException` (429, retries exhausted), or `ProviderResponseException` (other errors, or non-JSON structured output).
 
+### Tool calling
+
+Define a tool as a schema plus an `execute()` method:
+
+```php
+use LaraDantic\Tools\Tool;
+use LaraDantic\Tools\ToolResult;
+
+class CreateFlightBooking extends Tool
+{
+    public function name(): string
+    {
+        return 'create_flight_booking';
+    }
+
+    public function description(): string
+    {
+        return 'Create a flight booking request.';
+    }
+
+    public function schema(): string
+    {
+        return FlightBooking::class;
+    }
+
+    public function execute(FlightBooking $booking): ToolResult
+    {
+        // Application implementation - create the booking, return a result.
+        return ToolResult::success(['id' => 'BK-123']);
+    }
+}
+```
+
+The tool's JSON Schema function definition is generated automatically from `FlightBooking::jsonSchema()`. Ask the model to call it:
+
+```php
+$toolCalls = AI::tools([CreateFlightBooking::class, SearchFlight::class])
+    ->message('I want to book a flight from Vienna to Dhaka.')
+    ->run(); // Collection<ToolCall> - empty if the model replied with plain text instead
+
+$toolCall = $toolCalls->first();
+
+if ($toolCall->requiresConfirmation()) {
+    // Ask the user/application to confirm before proceeding.
+}
+
+$result = $toolCall->execute(); // explicit - never automatic
+```
+
+A `ToolCall`'s arguments are already validated and hydrated into the tool's declared schema (via `Schema::validated()`) by the time you see it - a malformed or invalid tool call throws `ToolException`/`ToolValidationException` (with structured `errors()`) before a `ToolCall` is ever created. `Tool::requiresConfirmation()` defaults to `true` (safe by default); override it to `false` only for genuinely read-only tools. Extra arguments passed to `->execute($user)` are forwarded positionally after the arguments, for tools declaring `execute(FlightBooking $booking, User $user)` - the host application remains responsible for authorization. `ToolCall::execute()` never throws: exceptions from inside a tool are caught and returned as a failed `ToolResult`.
+
 ## Roadmap
 
 This package is being built milestone by milestone. Implemented so far:
@@ -142,7 +193,7 @@ This package is being built milestone by milestone. Implemented so far:
 - [x] Milestone 3 — JSON Schema generation (attributes, constraints, formats, nested definitions)
 - [x] Milestone 4 — Laravel validation integration (rule inference, `SchemaValidationException`, nested validation)
 - [x] Milestone 5 — OpenRouter provider (structured output, chat, tool-call forwarding, retries)
-- [ ] Milestone 6 — Tool calling
+- [x] Milestone 6 — Tool calling (`Tool`, `ToolRegistry`, `ToolCall`, `ToolResult`, explicit execution, confirmation)
 - [ ] Milestone 7 — Agent loop
 
 ## Testing
