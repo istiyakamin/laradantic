@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace LaraDantic\Schema;
 
 use LaraDantic\Exceptions\SchemaException;
+use LaraDantic\Exceptions\SchemaValidationException;
 use LaraDantic\JsonSchema\JsonSchemaGenerator;
 use LaraDantic\Schema\Reflection\SchemaReflection;
+use LaraDantic\Validation\RuleInferrer;
+use LaraDantic\Validation\ValidationResult;
+use LaraDantic\Validation\Validator;
 use ReflectionClass;
 
 /**
@@ -79,5 +83,44 @@ abstract class Schema
     public static function jsonSchemaJson(int $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES): string
     {
         return json_encode(static::jsonSchema(), $flags | JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * The Laravel validation rules for this schema, inferred from its reflected
+     * properties and attributes. Override this method to customize or replace them.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    public static function rules(): array
+    {
+        return RuleInferrer::infer(static::class);
+    }
+
+    /**
+     * Validate raw data against this schema's rules without throwing.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public static function validate(array $data): ValidationResult
+    {
+        return Validator::validate(static::class, $data);
+    }
+
+    /**
+     * Validate raw data against this schema's rules, then hydrate it.
+     *
+     * @param  array<string, mixed>  $data
+     *
+     * @throws SchemaValidationException if validation fails
+     */
+    public static function validated(array $data): static
+    {
+        $result = static::validate($data);
+
+        if ($result->fails()) {
+            throw SchemaValidationException::fromResult($result);
+        }
+
+        return static::from($data);
     }
 }

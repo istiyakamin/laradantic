@@ -2,7 +2,7 @@
 
 Pydantic-inspired typed schemas for Laravel — define a data structure once in PHP and reuse it for validation, JSON Schema, structured AI output, and tool calling.
 
-> **Status:** v0.1 in active development. This release implements the core schema engine and JSON Schema generation (Milestones 1-3). Validation and AI/tool calling are not implemented yet — see the roadmap below.
+> **Status:** v0.1 in active development. This release implements the core schema engine, JSON Schema generation, and Laravel validation (Milestones 1-4). AI/tool calling is not implemented yet — see the roadmap below.
 
 ## Installation
 
@@ -98,6 +98,23 @@ FlightBooking::jsonSchemaJson(); // pretty-printed JSON string
 - Nested object schemas for `Schema` properties and typed arrays of them
 - `description` / `examples` / `minimum` / `maximum` / `minLength` / `maxLength` / `pattern` / `format`, via the `#[Description]`, `#[Example]`, `#[Min]`, `#[Max]`, `#[MinLength]`, `#[MaxLength]`, `#[Pattern]`, `#[Format]` and `#[DefaultValue]` attributes on properties (`#[Description]` is also allowed on the class itself)
 
+### Validation
+
+Rules are inferred from the same schema — required/nullable/optional presence, native type, enums (`Rule::in`), nested `Schema` properties and typed arrays of them via dot/wildcard notation (`passengers_list.*.name`), plus the `#[Min]`/`#[Max]`/`#[MinLength]`/`#[MaxLength]`/`#[Pattern]`/`#[Format]` attributes. Override `rules()` on your schema to replace them entirely.
+
+```php
+$result = FlightBooking::validate($data);
+
+if ($result->fails()) {
+    $result->errors(); // ['passengers' => ['The passengers field must not be greater than 20.']]
+}
+
+// Or validate-then-hydrate in one call, throwing on failure:
+$booking = FlightBooking::validated($data); // throws SchemaValidationException
+```
+
+`SchemaValidationException::errors()` exposes the same structured `field => [messages]` array. Note that `Schema::from()` itself is unchanged from Milestone 2 — it still throws the lighter-weight `SchemaException` for missing/uncastable fields; `validate()`/`validated()` are the new, opt-in Laravel-rules layer.
+
 ## Roadmap
 
 This package is being built milestone by milestone. Implemented so far:
@@ -105,7 +122,7 @@ This package is being built milestone by milestone. Implemented so far:
 - [x] Milestone 1 — Package foundation (service provider, config, facade, exceptions, tests, static analysis, CI)
 - [x] Milestone 2 — Core schema engine (reflection, types, serialization/deserialization)
 - [x] Milestone 3 — JSON Schema generation (attributes, constraints, formats, nested definitions)
-- [ ] Milestone 4 — Laravel validation integration
+- [x] Milestone 4 — Laravel validation integration (rule inference, `SchemaValidationException`, nested validation)
 - [ ] Milestone 5 — OpenRouter provider
 - [ ] Milestone 6 — Tool calling
 - [ ] Milestone 7 — Agent loop
