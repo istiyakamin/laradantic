@@ -2,7 +2,7 @@
 
 Pydantic-inspired typed schemas for Laravel — define a data structure once in PHP and reuse it for validation, JSON Schema, structured AI output, and tool calling.
 
-> **Status:** v0.1 in active development. This release implements the core schema engine, JSON Schema generation, and Laravel validation (Milestones 1-4). AI/tool calling is not implemented yet — see the roadmap below.
+> **Status:** v0.1 in active development. This release implements the core schema engine, JSON Schema generation, Laravel validation, and structured AI output via OpenRouter (Milestones 1-5). Tool calling and agents are not implemented yet — see the roadmap below.
 
 ## Installation
 
@@ -115,6 +115,24 @@ $booking = FlightBooking::validated($data); // throws SchemaValidationException
 
 `SchemaValidationException::errors()` exposes the same structured `field => [messages]` array. Note that `Schema::from()` itself is unchanged from Milestone 2 — it still throws the lighter-weight `SchemaException` for missing/uncastable fields; `validate()`/`validated()` are the new, opt-in Laravel-rules layer.
 
+### Structured AI output (OpenRouter)
+
+```env
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=
+```
+
+```php
+$booking = AI::structured(FlightBooking::class)
+    ->system('You are a travel booking assistant.')
+    ->prompt('Fly VIE to DAC on 2026-10-15 for 2 people, business class.')
+    ->run(); // FlightBooking instance, validated and hydrated
+```
+
+The pipeline is exactly: schema -> JSON Schema -> provider request -> LLM -> JSON decode -> `Schema::validated()` -> typed object. `AI::provider('openrouter')->model('...')`, `->chat($messages)`, and registering a custom provider via `AI::extend('name', $provider)` (any `LaraDantic\Providers\AIProvider` implementation) are also supported. Requests use Laravel's HTTP client, so `Http::fake()` works in tests — no other provider is required yet, but the `AIProvider` interface is provider-neutral by design.
+
+Transient failures (429/500/502/503/504, connection errors) are retried automatically up to `config('laradantic.retries')` times; everything else fails fast as `ProviderAuthenticationException` (401/403 or a missing API key), `ProviderRateLimitException` (429, retries exhausted), or `ProviderResponseException` (other errors, or non-JSON structured output).
+
 ## Roadmap
 
 This package is being built milestone by milestone. Implemented so far:
@@ -123,7 +141,7 @@ This package is being built milestone by milestone. Implemented so far:
 - [x] Milestone 2 — Core schema engine (reflection, types, serialization/deserialization)
 - [x] Milestone 3 — JSON Schema generation (attributes, constraints, formats, nested definitions)
 - [x] Milestone 4 — Laravel validation integration (rule inference, `SchemaValidationException`, nested validation)
-- [ ] Milestone 5 — OpenRouter provider
+- [x] Milestone 5 — OpenRouter provider (structured output, chat, tool-call forwarding, retries)
 - [ ] Milestone 6 — Tool calling
 - [ ] Milestone 7 — Agent loop
 

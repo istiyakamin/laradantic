@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace LaraDantic\Laravel;
 
 use Illuminate\Support\ServiceProvider;
+use LaraDantic\AI\AIManager;
+use LaraDantic\Providers\ProviderManager;
 
 class LaraDanticServiceProvider extends ServiceProvider
 {
@@ -13,6 +15,10 @@ class LaraDanticServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../../config/laradantic.php', 'laradantic');
 
         $this->app->singleton('laradantic', fn () => new LaraDanticManager);
+
+        $this->app->singleton(ProviderManager::class, fn ($app) => new ProviderManager($app->make('config')));
+
+        $this->app->singleton('laradantic.ai', fn ($app) => new AIManager($app->make(ProviderManager::class)));
     }
 
     public function boot(): void
