@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LaraDantic\Schema;
 
 use LaraDantic\Exceptions\SchemaException;
+use LaraDantic\JsonSchema\JsonSchemaGenerator;
 use LaraDantic\Schema\Reflection\SchemaReflection;
 use ReflectionClass;
 
@@ -60,5 +61,23 @@ abstract class Schema
     public function toArray(): array
     {
         return SchemaSerializer::serialize($this);
+    }
+
+    /**
+     * Generate the JSON Schema representation of this schema class.
+     *
+     * @return array<string, mixed>
+     */
+    public static function jsonSchema(): array
+    {
+        return JsonSchemaGenerator::generate(static::class);
+    }
+
+    /**
+     * Generate the JSON Schema representation of this schema class, encoded as a JSON string.
+     */
+    public static function jsonSchemaJson(int $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES): string
+    {
+        return json_encode(static::jsonSchema(), $flags | JSON_THROW_ON_ERROR);
     }
 }

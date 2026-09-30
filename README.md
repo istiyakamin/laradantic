@@ -2,7 +2,7 @@
 
 Pydantic-inspired typed schemas for Laravel — define a data structure once in PHP and reuse it for validation, JSON Schema, structured AI output, and tool calling.
 
-> **Status:** v0.1 in active development. This release implements the core schema engine (Milestone 2). Validation, JSON Schema generation, and AI/tool calling are not implemented yet — see the roadmap below.
+> **Status:** v0.1 in active development. This release implements the core schema engine and JSON Schema generation (Milestones 1-3). Validation and AI/tool calling are not implemented yet — see the roadmap below.
 
 ## Installation
 
@@ -56,6 +56,31 @@ $booking->toArray();
 
 Missing required properties or values that can't be cast to the declared type throw a `LaraDantic\Exceptions\SchemaException`.
 
+Generate its JSON Schema:
+
+```php
+use LaraDantic\Schema\Attributes\Description;
+use LaraDantic\Schema\Attributes\Example;
+use LaraDantic\Schema\Attributes\Max;
+use LaraDantic\Schema\Attributes\Min;
+
+class FlightBooking extends Schema
+{
+    #[Description('Departure airport IATA code')]
+    #[Example('VIE')]
+    public string $origin;
+
+    #[Min(1)]
+    #[Max(20)]
+    public int $passengers = 1;
+
+    // ...
+}
+
+FlightBooking::jsonSchema();
+FlightBooking::jsonSchemaJson(); // pretty-printed JSON string
+```
+
 ### Supported types
 
 - Primitives: `string`, `int`, `float`, `bool`
@@ -65,13 +90,21 @@ Missing required properties or values that can't be cast to the declared type th
 - Typed arrays via `@var Type[]` docblocks (primitives, enums, or nested schemas)
 - Declared property defaults (`public int $passengers = 1;`)
 
+### JSON Schema
+
+`Schema::jsonSchema()` / `Schema::jsonSchemaJson()` produce a JSON Schema document with:
+
+- `type`, `properties`, `required`, `nullable`, `enum`, `default`
+- Nested object schemas for `Schema` properties and typed arrays of them
+- `description` / `examples` / `minimum` / `maximum` / `minLength` / `maxLength` / `pattern` / `format`, via the `#[Description]`, `#[Example]`, `#[Min]`, `#[Max]`, `#[MinLength]`, `#[MaxLength]`, `#[Pattern]`, `#[Format]` and `#[DefaultValue]` attributes on properties (`#[Description]` is also allowed on the class itself)
+
 ## Roadmap
 
 This package is being built milestone by milestone. Implemented so far:
 
 - [x] Milestone 1 — Package foundation (service provider, config, facade, exceptions, tests, static analysis, CI)
 - [x] Milestone 2 — Core schema engine (reflection, types, serialization/deserialization)
-- [ ] Milestone 3 — JSON Schema generation
+- [x] Milestone 3 — JSON Schema generation (attributes, constraints, formats, nested definitions)
 - [ ] Milestone 4 — Laravel validation integration
 - [ ] Milestone 5 — OpenRouter provider
 - [ ] Milestone 6 — Tool calling
