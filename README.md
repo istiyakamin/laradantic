@@ -2,7 +2,16 @@
 
 Pydantic-inspired typed schemas for Laravel — define a data structure once in PHP and reuse it for validation, JSON Schema, structured AI output, and tool calling.
 
-> **Status:** v0.1 in active development. This release implements the full initial feature set — schema engine, JSON Schema generation, Laravel validation, structured AI output, tool calling, and the agent loop (Milestones 1-7). Remaining work is documentation and release hardening — see the roadmap below.
+> **Status:** v0.1.0. The full initial feature set is implemented — schema engine, JSON Schema generation, Laravel validation, structured AI output, tool calling, and the agent loop (Milestones 1-7) — with tests, static analysis, docs, and examples in place. See [CHANGELOG.md](CHANGELOG.md) and the roadmap below.
+
+## Documentation
+
+- [Installation](docs/installation.md) · [Configuration](docs/configuration.md)
+- [Schemas](docs/schemas.md) · [Types](docs/types.md) · [Validation](docs/validation.md) · [JSON Schema](docs/json-schema.md)
+- [Structured output](docs/structured-output.md) · [Providers](docs/providers.md) · [OpenRouter](docs/openrouter.md)
+- [Tools](docs/tools.md) · [Tool calling](docs/tool-calling.md) · [Agents](docs/agents.md)
+- [Security](docs/security.md) · [Testing](docs/testing.md) · [Extending](docs/extending.md)
+- Runnable examples: [basic schema](examples/basic-schema), [structured output](examples/structured-output), [booking agent](examples/booking-agent)
 
 ## Installation
 
@@ -238,6 +247,12 @@ composer test
 composer stan
 composer pint
 ```
+
+See [docs/testing.md](docs/testing.md) for testing schemas, providers, tools, and agents in your own application.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Found a security issue? See [SECURITY.md](SECURITY.md) instead of opening a public issue.
 
 ## License
 
