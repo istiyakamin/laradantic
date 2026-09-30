@@ -1,0 +1,51 @@
+{
+    "name": "istiyakamin/laradantic",
+    "description": "Pydantic-inspired typed schemas, JSON Schema, structured AI output and tool calling for Laravel.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["laravel", "schema", "validation", "json-schema", "ai", "llm", "structured-output"],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/validation": "^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "pestphp/pest": "^2.0|^3.0",
+        "laravel/pint": "^1.0",
+        "phpstan/phpstan": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "LaraDantic\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LaraDantic\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LaraDantic\\Laravel\\LaraDanticServiceProvider"
+            ],
+            "aliases": {
+                "LaraDantic": "LaraDantic\\Laravel\\LaraDanticFacade"
+            }
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "pest",
+        "stan": "phpstan analyse",
+        "pint": "pint"
+    }
+}
