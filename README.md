@@ -2,7 +2,7 @@
 
 Pydantic-inspired typed schemas for Laravel — define a data structure once in PHP and reuse it for validation, JSON Schema, structured AI output, and tool calling.
 
-> **Status:** v0.1 in active development. This release implements the core schema engine, JSON Schema generation, Laravel validation, structured AI output, and tool calling (Milestones 1-6). Agents are not implemented yet — see the roadmap below.
+> **Status:** v0.1 in active development. This release implements the full initial feature set — schema engine, JSON Schema generation, Laravel validation, structured AI output, tool calling, and the agent loop (Milestones 1-7). Remaining work is documentation and release hardening — see the roadmap below.
 
 ## Installation
 
@@ -184,6 +184,40 @@ $result = $toolCall->execute(); // explicit - never automatic
 
 A `ToolCall`'s arguments are already validated and hydrated into the tool's declared schema (via `Schema::validated()`) by the time you see it - a malformed or invalid tool call throws `ToolException`/`ToolValidationException` (with structured `errors()`) before a `ToolCall` is ever created. `Tool::requiresConfirmation()` defaults to `true` (safe by default); override it to `false` only for genuinely read-only tools. Extra arguments passed to `->execute($user)` are forwarded positionally after the arguments, for tools declaring `execute(FlightBooking $booking, User $user)` - the host application remains responsible for authorization. `ToolCall::execute()` never throws: exceptions from inside a tool are caught and returned as a failed `ToolResult`.
 
+### Agents
+
+`AI::agent()` runs the LLM → tool call → tool execution → tool result → LLM loop for you, up to a configurable number of iterations:
+
+```php
+$result = AI::agent()
+    ->tools([SearchFlight::class, CreateFlightBooking::class])
+    ->maxIterations(5)
+    ->system('You are a travel booking assistant.')
+    ->run('I want to book a flight from Vienna to Dhaka for 2 people.');
+```
+
+Tools that don't require confirmation (`requiresConfirmation() === false`, e.g. a read-only `SearchFlight`) are executed automatically and their results fed straight back to the model, which keeps going until it produces a final reply. The moment the model calls a tool that *does* require confirmation, the loop stops immediately - **without executing it** - and returns control to you:
+
+```php
+match ($result->status()) {
+    AgentStatus::Completed => $result->text(),
+    AgentStatus::PendingConfirmation => /* ask the user, then see below */,
+    AgentStatus::MaxIterationsReached => /* give up gracefully */,
+};
+```
+
+To continue after the host has confirmed and explicitly executed the pending tool call(s):
+
+```php
+$toolCall = $result->pendingToolCalls()[0];
+$toolResult = $toolCall->execute(); // explicit, after confirmation
+
+$resumed = AI::agent()->tools([SearchFlight::class, CreateFlightBooking::class])
+    ->resume($result->messages(), [['toolCall' => $toolCall, 'result' => $toolResult]]);
+```
+
+This confirmation boundary is a hard rule, not a configurable one: the agent loop never assumes "the AI said it, therefore it is authorized." `$result->executions()` lists every tool the loop *did* auto-execute (with its `ToolResult`), for auditing. `$result->messages()` is the running OpenAI-style conversation array - store it however your application prefers; LaraDantic doesn't force any persistence on you.
+
 ## Roadmap
 
 This package is being built milestone by milestone. Implemented so far:
@@ -194,7 +228,7 @@ This package is being built milestone by milestone. Implemented so far:
 - [x] Milestone 4 — Laravel validation integration (rule inference, `SchemaValidationException`, nested validation)
 - [x] Milestone 5 — OpenRouter provider (structured output, chat, tool-call forwarding, retries)
 - [x] Milestone 6 — Tool calling (`Tool`, `ToolRegistry`, `ToolCall`, `ToolResult`, explicit execution, confirmation)
-- [ ] Milestone 7 — Agent loop
+- [x] Milestone 7 — Agent loop (`AI::agent()`, max iterations, auto-execution up to the confirmation boundary, `resume()`)
 
 ## Testing
 

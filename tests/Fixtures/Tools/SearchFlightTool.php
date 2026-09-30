@@ -30,10 +30,13 @@ class SearchFlightTool extends Tool
         return false;
     }
 
-    public function execute(FlightSearchQuery $query): ToolResult
+    public function execute(FlightSearchQuery $query, ?string $requesterId = null): ToolResult
     {
         return ToolResult::success([
-            ['flight' => 'AB123', 'origin' => $query->origin, 'destination' => $query->destination],
+            'requester' => $requesterId,
+            'flights' => [
+                ['flight' => 'AB123', 'origin' => $query->origin, 'destination' => $query->destination],
+            ],
         ]);
     }
 }

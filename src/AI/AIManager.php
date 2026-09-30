@@ -64,6 +64,11 @@ final class AIManager
         return new ToolCallRequest($this->providers->driver($this->providerName), $this->model, $registry);
     }
 
+    public function agent(): Agent
+    {
+        return new Agent($this->providers->driver($this->providerName), $this->model);
+    }
+
     /**
      * @param  array<int, array<string, mixed>>  $messages
      * @param  array<string, mixed>  $options
